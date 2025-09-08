@@ -1,0 +1,469 @@
+# https://swagger.io/docs/specification/about/
+
+openapi: "1.0.0"
+
+info:
+  version: 1.0.0
+  title: Скользящая диагностика знаний
+  description: API скилла Скользящая диагностика знаний
+  
+components:
+  schemas:
+    errorMessage:
+      type: object
+      required:
+        - workId
+        - msgId
+        - msgTm
+        - error
+        - stackTrace
+        - skillExecutionTime
+      properties:
+        workId:
+          type: string
+          description: ID сквозного процесса
+        msgId:
+          type: string
+          description: ID сообщения
+        msgTm:
+          type: string
+          format: date-time
+          description: дата и время, создания сообщения (пример - 2019-06-18T17:46:56.900000Z)
+        msgProperties:
+          $ref: "#/components/schemas/msgPropertiesSchema"
+        error:
+          type: string
+          description: Ошибка с комментарием
+        stack_trace:
+          type: string
+          description: Возвращается stack trace, если тип ошибки - exception
+        skillExecutionTime:
+          type: string
+          description: Время работы скилла
+
+    okMessage:
+      type: object
+      required:
+        - workId
+        - msgId
+        - msgTm
+        - skillExecutionTime
+        - skillResult
+      properties:
+        workId:
+          type: string
+          description: ID сквозного процесса
+        msgId:
+          type: string
+          description: ID сообщения
+        msgTm:
+          type: string
+          format: date-time
+          description: Дата и время, создания сообщения (пример - 2019-06-18T17:46:56.900000Z)
+        msgProperties:
+          $ref: '#/components/schemas/msgPropertiesSchema'
+        skillExecutionTime:
+          type: string
+          description: Время работы скилла
+        skillMetaResult:
+          type: object
+          description: Сервисное поле, используемое для передачи метадаты по результатам работы скилла
+        skillResult:
+          description: Результат работы скилла
+          properties:
+            response:
+              $ref: "#/components/schemas/JudgeResponse"
+
+    msgPropertiesSchema:
+      nullable: true
+      type: object
+      description: Поле, через которое можно передать любое количество пар ключ-значение, позволяет присваивать запросу дополнительные идентификаторы. Например, можно передать id пакета документов - "packageId"::"1234". Все переданные пары вернутся в ответе сервиса.
+      additionalProperties:
+        type: string
+
+    versionSchema:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          description: Версия сервиса скилла
+        model_name:
+          type: string
+          description: Версия модели, которая используется
+
+    Task:
+      description: Задание, спаршенное с проверенных веб-сайтов (https://3.shkolkovo.online/)
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Уникальный идентификатор задания
+        task_url:
+          type: string
+          description: URL задания
+        problem:
+          type: string
+          description: Текст задания
+        gt_answer:
+          type: string
+          description: Эталонный ответ
+        solution:
+          type: string
+          description: Решение задания
+        bloom_level:
+          type: string
+          enum: ["1", "2", "3", "4", "5", "6"]
+          description: Уровень таксономии Блума
+        title_num:
+          type: string
+          description: Номер темы
+        title_name:
+          type: string
+          description: Название темы
+        sub_title_num:
+          type: string
+          description: Номер подтемы
+        sub_title_name:
+          type: string
+          description: Название подтемы
+        url:
+          type: string
+          description: URL материала по теме
+      required:
+        - task_id
+        - problem
+        - solution
+        - answer
+        - bloom_level
+    
+    Assessment:
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Идентификатор задания
+        student_answer:
+          type: string
+          description: Ответ студента
+        score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Оценка ответа от 0 до 1
+        assessment_level:
+          type: string
+          enum: ["bad", "normal", "excellent"]
+          description: Уровень оценки
+        feedback:
+          type: string
+          description: Обратная связь по ответу
+      required:
+        - task_id
+        - score
+        - assessment_level
+    
+    StudentConfiguration:
+      type: object
+      properties:
+        student_id:
+          type: string
+          desription: Уникальный индентификатор студента
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExamSession'
+        reports:
+          type: array
+          items:
+            $ref: '#/components/schemas/Report'
+      required:
+        - student_id
+        - sessions
+
+    StudentRequest:
+      type: object
+      properties:
+        task_id:
+          type: string
+          description: Идентификатор задания
+        answer:
+          type: string
+          description: Ответ студента
+      required:
+        - task_id
+        - answer
+
+    ExamSession:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: Уникальный идентификатор сессии экзамена
+        student_id:
+          type: string
+          description: Идентификатор студента
+        domain:
+          type: string
+          description: Домен знаний для тестирования
+        current_bloom_level:
+          type: string
+          enum: ["1", "2", "3", "4", "5", "6"]
+          description: Текущий уровень таксономии Блума
+        attempts_at_current_level:
+          type: integer
+          description: Количество попыток на текущем уровне
+        status:
+          type: string
+          enum: ["in_progress", "completed", "failed"]
+          description: Статус экзамена
+        start_time:
+          type: string
+          format: date-time
+          description: Время начала экзамена
+        end_time:
+          type: string
+          format: date-time
+          description: Время окончания экзамена
+      required:
+        - session_id
+        - student_id
+        - domain
+        - current_bloom_level
+        - status
+    
+    Report:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: Идентификатор сессии экзамена
+        student_id:
+          type: string
+          description: Идентификатор студента
+        max_bloom_level_achieved:
+          type: string
+          enum: ["1", "2", "3", "4", "5", "6"]
+          description: Максимально достигнутый уровень таксономии Блума
+        assessment_summary:
+          type: string
+          description: Общая оценка знаний студента
+        strong_areas:
+          type: array
+          items:
+            type: string
+          description: Сильные стороны студента
+        weak_areas:
+          type: array
+          items:
+            type: string
+          description: Области для улучшения
+        recommendations:
+          type: array
+          items:
+            type: string
+          description: Рекомендации для дальнейшего обучения
+        detailed_responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Assessment'
+          description: Детальный анализ ответов
+      required:
+        - session_id
+        - student_id
+        - max_bloom_level_achieved
+        - assessment_summary
+        - recommendations
+
+    TaskExecutor:
+      type: object
+      description: Конфигурация модуля извлечения заданий из базы знаний
+      required:
+        domains:
+          type: array
+          description: Список доменных областей
+          items:
+            type: object
+            description: Доменная оласть
+            required:
+              - domain_name
+              - tasks_list
+            properties:
+              domain_name:
+                type: string
+                description: Название домена
+              tasks_list:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+
+    llmParams:
+      description: Параметры вызова LLM.
+      type: object
+      properties:
+        model_name:
+          type: string
+          description: Имя модели - YandexGPT, YandexGPT-Pro, YandexGPT-Lite... Дефолтно указывается при старте скилла.
+          default: "YandexGPT-Pro"
+        model_endpoint:
+          type: string
+          description: Техническое поле. alias для эндпойнта LLM модели - default, second, ...
+          default: "default"
+        model_profanity_check:
+          type: boolean
+          description: Включение проверок по blacklist на стороне LLM модели.
+          default: null
+        temperature:
+          type: number
+          format: float
+          description: Температура, используемая в процессе генерации. Значение температуры должно быть больше ноля. Чем выше значение, тем более случайным будет ответ модели. При значениях температуры больше двух, набор токенов в ответе модели может отличаться избыточной случайностью.
+          minimum: 0.0
+          default: 0.0001
+        top_p:
+          type: number
+          format: float
+          description: Параметр используется как альтернатива температуре (поле temperature) в процессе генерации. Задает вероятностную массу токенов, которые должна учитывать модель. Так, если передать значение 0.1, модель будет учитывать только токены, чья вероятностная масса входит в верхние 10%.
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.0
+        repetition_penalty:
+          type: number
+          format: float
+          description: Регулирует количество повторений слов в процессе генерации. Значение 1.0 — нейтральное значение. При значении больше 1 модель будет стараться не повторять слова.
+          default: 1.0
+
+    maxTokensConfiguration:
+      type: object
+      description: Настройки максимального количества токенов
+      properties:
+        out_max_tokens:
+          type: number
+          format: integer
+          description: Максимально допустимое количество токенов в ответе при генерации через LLM. Если не задан, то используется дефолтный из LLM API.
+          minimum: 1
+          default: null
+        context_max_tokens:
+          type: number
+          format: integer
+          description: 'Ограничение на общее количество токенов в конеткстах в промпте. Если задан out_max_tokens, то равен llm_context_window - out_max_tokens; дефолтно задан как llm_context_window - 1024'
+          minimum: 1
+        dialogue_max_tokens:
+          type: number
+          format: integer
+          description: Дополнительное ограничение на количество токенов в промпте в части истории диалога.
+          minimum: 0
+          default: null
+
+    QueryClassifier:
+      type: object
+      description: Конфигурация модуля оценки ответа студента
+      type: object
+      required:
+        - prompts
+      properties:
+        max_tokens:
+          $ref: "#/components/schemas/maxTokensConfiguration"
+        max_user_messages:
+          type: number
+          format: integer
+          description: Максимальное количество пользовательских сообщений и соответствующих им ответов модели для формирования контекста по истории диалога. После обрезки цепочка будет всегда начинаться с role=user.
+          minimum: 1
+        prompts:
+          type: object
+          description: Кастомные промпты для оценки релевантности ответов студента по доменной области
+          required:
+            - system_prompt
+            - user_prompt
+          properties:
+            system_prompt:
+              type: string
+              description: Кастомный системный промпт для LLM-сеттингов
+            user_prompt:
+              type: string
+              description: Пользовательский промпт - обязательно наличие поля {problem} и {answer}, опционально {solution}, {gt_answer} и {bloom_level}
+
+    agentConfiguration:
+      description: Конфигурация скилла сквозной диагностики знаний
+      type: object
+      required:
+        - task_executor
+        - query_classifier
+      properties:
+        task_executor:
+          $ref: '#/components/schemas/TaskExecutor'
+        query_classifier:
+          $ref: '#/components/schemas/QueryClassifier'
+
+paths:
+  /predict:
+    post:
+      summary: Вызов универсального сервиса оценки качества.
+      operationId: app.predict
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              oneOf:
+                - required: [structuredData, configuration]
+              properties:
+                structuredData:
+                  required:
+                    - request
+                  description: Параметры запроса для скилла.
+                  properties:
+                    request:
+                      $ref: "#/components/schemas/StudentRequest"
+                configuration:
+                  $ref: '#/components/schemas/agentConfiguration'
+            encoding:
+              predictParams:
+                contentType: "application/json"
+              structuredData:
+                contentType: "application/json"
+
+      responses:
+        200:
+          description: OK, запрос обработан успешно
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/okMessage'
+
+        400:
+          description: Ошибка при обработке запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
+        412:
+          description: Ошибка при возвращении пустого ответа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
+        415:
+          description: Неподдерживаемый формат запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
+        500:
+          description: Fatal error, сервис недоступен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
+        503:
+          description: Скилл не инициализирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'

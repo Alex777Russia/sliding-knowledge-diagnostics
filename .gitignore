@@ -1,0 +1,12 @@
+# Utils
+__pycache__/
+.DS_Store
+.ipynb_checkpoints
+.vscode
+*.log
+
+# Environments
+.env
+.venv
+env/
+venv/
