@@ -31,10 +31,8 @@ class Assistant:
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         self._validate_configuration(config)
 
-        qm_request = QMRequest.from_dict(data)
+        response = self.quality_manager.run_single_eval(qm_request, config)
 
-        qm_response = self.quality_manager.run_single_eval(qm_request, config)
-
-        result_message = qm_response_to_message(qm_response)
+        result_message = response_to_message(qm_response)
 
         return result_message, {}

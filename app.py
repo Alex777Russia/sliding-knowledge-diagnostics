@@ -43,7 +43,6 @@ class AssistantModel(StandardModel):
         """
         call_id = uuid.uuid4()
         
-        # logger.debug(f"REQUEST: CallId {call_id}: {json.dumps(anonymize_logs(params), ensure_ascii=False)}")
         status_code = 200
 
         data = params.get("structured_data", {})
@@ -64,13 +63,7 @@ class AssistantModel(StandardModel):
         try:
             since = time.time()
             logger.info(f'Getting result from model; CallId {call_id}')
-            if data["request_type"] == "single_eval":
-                result, meta_result = assistant.predict_single_eval(data["request"], configuration)
-            elif data["request_type"] == "batch_eval":
-                result, meta_result = assistant.predict_batch_eval(data, configuration)
-            else:
-                msg = f"Unknown request_type: {data['request_type']}. Should be 'single_eval' or 'batch_eval'."
-                raise ValueError(msg)
+            result, meta_result = assistant.predict_single_eval(data["request"], configuration)
             result = {
                 "response_type": data["request_type"],
                 "response": result,
@@ -120,7 +113,7 @@ class AssistantModel(StandardModel):
         with open('VERSION') as f:
             version: str = f.read().strip()
         return {
-            'version': version,
+            'version': version
         }
 
 

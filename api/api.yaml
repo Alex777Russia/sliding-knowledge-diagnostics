@@ -12,16 +12,11 @@ components:
     errorMessage:
       type: object
       required:
-        - workId
         - msgId
         - msgTm
         - error
-        - stackTrace
-        - skillExecutionTime
+        - executionTime
       properties:
-        workId:
-          type: string
-          description: ID сквозного процесса
         msgId:
           type: string
           description: ID сообщения
@@ -29,26 +24,20 @@ components:
           type: string
           format: date-time
           description: дата и время, создания сообщения (пример - 2019-06-18T17:46:56.900000Z)
-        msgProperties:
-          $ref: "#/components/schemas/msgPropertiesSchema"
         error:
           type: string
           description: Ошибка с комментарием
-        stack_trace:
-          type: string
-          description: Возвращается stack trace, если тип ошибки - exception
-        skillExecutionTime:
+        executionTime:
           type: string
           description: Время работы скилла
 
     okMessage:
       type: object
       required:
-        - workId
         - msgId
         - msgTm
-        - skillExecutionTime
-        - skillResult
+        - executionTime
+        - result
       properties:
         workId:
           type: string
@@ -60,26 +49,14 @@ components:
           type: string
           format: date-time
           description: Дата и время, создания сообщения (пример - 2019-06-18T17:46:56.900000Z)
-        msgProperties:
-          $ref: '#/components/schemas/msgPropertiesSchema'
-        skillExecutionTime:
+        executionTime:
           type: string
           description: Время работы скилла
-        skillMetaResult:
-          type: object
-          description: Сервисное поле, используемое для передачи метадаты по результатам работы скилла
-        skillResult:
+        result:
           description: Результат работы скилла
           properties:
             response:
               $ref: "#/components/schemas/JudgeResponse"
-
-    msgPropertiesSchema:
-      nullable: true
-      type: object
-      description: Поле, через которое можно передать любое количество пар ключ-значение, позволяет присваивать запросу дополнительные идентификаторы. Например, можно передать id пакета документов - "packageId"::"1234". Все переданные пары вернутся в ответе сервиса.
-      additionalProperties:
-        type: string
 
     versionSchema:
       type: object
@@ -93,7 +70,7 @@ components:
           type: string
           description: Версия модели, которая используется
 
-    Task:
+    TaskConfiguration:
       description: Задание, спаршенное с проверенных веб-сайтов (https://3.shkolkovo.online/)
       type: object
       properties:
@@ -165,7 +142,7 @@ components:
         - score
         - assessment_level
     
-    StudentConfiguration:
+    StudentProperties:
       type: object
       properties:
         student_id:
@@ -297,7 +274,7 @@ components:
               tasks_list:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Task"
+                  $ref: "#/components/schemas/TaskConfiguration"
 
     llmParams:
       description: Параметры вызова LLM.
