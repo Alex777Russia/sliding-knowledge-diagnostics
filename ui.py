@@ -8,10 +8,18 @@ for var in ["http_proxy", "https_proxy", "ftp_proxy", "socks_proxy",
             "ALL_PROXY", "all_proxy"]:
     os.environ.pop(var, None)
 
-def evaluate_answer(answer: str) -> float:
+BLOOM_ORDER = ["Знание", "Понимание", "Применение", "Анализ", "Синтез", "Оценка"]
+
+def evaluate_answer(student_answer: str, 
+                    problem: str, 
+                    reference_answer: str,
+                    blum_level: str) -> float:
     return random.random()
 
-def generate_clarifying_question(question: str, answer: str) -> str:
+def generate_clarifying_question(student_answer: str, 
+                                 problem: str, 
+                                 reference_answer: str,
+                                 blum_level: str) -> str:
     return f"Уточняющий вопрос"
 
 def generate_report(history, max_level, topic) -> dict:
@@ -19,10 +27,8 @@ def generate_report(history, max_level, topic) -> dict:
         "topic": topic,
         "max_passed_level": max_level,
         "history": history,
-        "summary": "Отчёт (заглушка, сюда добавить аналитику)"
+        "summary": ""
     }
-
-BLOOM_ORDER = ["Знание", "Понимание", "Применение", "Анализ", "Синтез", "Оценка"]
 
 def next_bloom_level(current):
     if current in BLOOM_ORDER:
@@ -60,7 +66,12 @@ class ExamSession:
             return [{"role": "assistant", "content": txt}]
 
         self.history.append({"role": "user", "content": answer})
-        score = evaluate_answer(answer)
+        score = evaluate_answer(
+            answer,
+            self.current_row['problem'], 
+            self.current_level['answer'],
+            self.current_level,
+        )
 
         if score < 0.4:
             self.low_score_counter += 1
@@ -71,7 +82,12 @@ class ExamSession:
                 new_question = self.get_question()
                 self.history.append({"role": "assistant", "content": new_question})
         elif 0.4 <= score < 0.6:
-            clar_q = generate_clarifying_question(f"Уровень {self.current_level}", answer)
+            clar_q = generate_clarifying_question(
+                answer,
+                self.current_row['problem'], 
+                self.current_level['answer'],
+                self.current_level,
+            )
             self.history.append({"role": "assistant", "content": clar_q})
         else:
             self.max_passed_level = self.current_level
