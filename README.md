@@ -29,3 +29,5 @@ Start app:
 bash docker/build.sh
 bash docker/run.sh
 ```
+
+Local app can be accessed by line ```http://0.0.0.0:7860```
