@@ -1,12 +1,5 @@
 import os
-
-for var in ["http_proxy", "https_proxy", "ftp_proxy", "socks_proxy",
-            "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY", "SOCKS_PROXY",
-            "ALL_PROXY", "all_proxy"]:
-    os.environ.pop(var, None)
-    
 import gradio as gr
-import re
 from typing import Optional, Dict, List, Tuple
 from src.sliding_knowledge_diagnostics.sliding_knowledge_diagnostics import SlidingKnowledgeDiagnostics
 from src.utils import EXAM_IS_NOT_DONE_MESSAGE, prettify_numbered_text
