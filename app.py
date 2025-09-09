@@ -6,9 +6,10 @@ for var in ["http_proxy", "https_proxy", "ftp_proxy", "socks_proxy",
     os.environ.pop(var, None)
     
 import gradio as gr
+import re
 from typing import Optional, Dict, List, Tuple
 from src.sliding_knowledge_diagnostics.sliding_knowledge_diagnostics import SlidingKnowledgeDiagnostics
-from src.utils import EXAM_IS_NOT_DONE_MESSAGE
+from src.utils import EXAM_IS_NOT_DONE_MESSAGE, prettify_numbered_text
 
 StartCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics]
 AnswerCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, float, str]
@@ -23,7 +24,7 @@ def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
         вот мой первый вопрос:
         {first_question}
     """
-    history.append({"role": "assistant", "content": first_message})
+    history.append({"role": "assistant", "content": prettify_numbered_text(first_message)})
     return f"Экзамен начат по теме: {topic}", history, session
 
 def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
@@ -36,7 +37,7 @@ def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
     user_elem = session.history[-2]
     assist_elem = session.history[-1]
     history.append({"role": "user", "content": user_elem.content})
-    history.append({"role": "assistant", "content": assist_elem.content})
+    history.append({"role": "assistant", "content": prettify_numbered_text(assist_elem.content)})
 
     return "", history, session, user_elem.evaluation_result.evaluation_score, assist_elem.blum_level
 
@@ -72,10 +73,12 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     send_btn.click(answer_question, [state, msg, chatbot], [msg, chatbot, state, score, current_level])
 
     with gr.Tab("Отчет"):
-        report_box = gr.Textbox(label="Отчет", lines=8)
+        report_box = gr.Textbox(label="Сырой отчет (можно редактировать)", lines=8)
         show_btn = gr.Button("Показать отчет")
-        out = gr.Textbox()
         show_btn.click(show_report, [state], [report_box])
+        output = gr.Markdown()
+        report_box.change(lambda x: x, inputs=report_box, outputs=output)
+
 
 if __name__ == "__main__":
     from dotenv import load_dotenv

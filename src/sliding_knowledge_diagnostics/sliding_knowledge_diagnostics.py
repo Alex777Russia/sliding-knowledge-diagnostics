@@ -29,7 +29,7 @@ class SlidingKnowledgeDiagnostics:
         row = self.questions_df[
             self.questions_df['blum_level'] == self.current_blum_level
         ].iloc[0]
-        # self.questions_df = self.questions_df.drop(index=row.name)
+        self.questions_df = self.questions_df.drop(index=row.name)
         self.history.append(
             self._create_history_elem_from_row(
                 role="assistant",
