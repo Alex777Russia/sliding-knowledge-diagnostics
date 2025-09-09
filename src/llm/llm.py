@@ -35,7 +35,7 @@ class LLM:
             self,
             messages: List[LLMMessage],
             model_name: str = "yandexgpt"
-    ):
+    ) -> str:
         result = (
             self.model.models.completions(model_name).configure(temperature=0.5).run(messages)
         )
