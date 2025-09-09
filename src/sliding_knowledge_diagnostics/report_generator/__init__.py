@@ -1,0 +1,1 @@
+from src.sliding_knowledge_diagnostics.report_generator.report_generator import ReportGenerator
