@@ -1,124 +1,83 @@
 import os
-import time
-import traceback
-import uuid
-import warnings
 
-from aiohttp import web
+for var in ["http_proxy", "https_proxy", "ftp_proxy", "socks_proxy",
+            "HTTP_PROXY", "HTTPS_PROXY", "FTP_PROXY", "SOCKS_PROXY",
+            "ALL_PROXY", "all_proxy"]:
+    os.environ.pop(var, None)
+    
+import gradio as gr
+from typing import Optional, Dict, List, Tuple
+from src.sliding_knowledge_diagnostics.sliding_knowledge_diagnostics import SlidingKnowledgeDiagnostics
+from src.utils import EXAM_IS_NOT_DONE_MESSAGE
 
-from model.model_app.handler.standard_model import StandardModel
-from model.model_app.handler.decorator import request_handler
-from src import logger
-from src.assistant import Assistant
+StartCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics]
+AnswerCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, float, str]
 
-assistant = Assistant(
-    service_cfg_path=os.environ.get("MODEL_CONFIG_PATH", "configs/service_configs/deployment_config.yaml"),
-    swagger_path=os.environ.get("SWAGGER_PATH", "api/api.yaml")
-)
-
-warnings.filterwarnings("ignore", message=".*Unverified HTTPS request is being made.*")
-
-
-class AssistantModel(StandardModel):
+def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
+    session = SlidingKnowledgeDiagnostics()
+    session.get_question_and_add_question_element_to_history()
+    hist_elem = session.history[-1]
+    first_question = hist_elem.content
+    first_message = f"""
+        Привет! Я помогу тебе проверить свои знания по теме {topic}, 
+        вот мой первый вопрос:
+        {first_question}
     """
-    Assistant model implementation.
+    history.append({"role": "assistant", "content": first_message})
+    return f"Экзамен начат по теме: {topic}", history, session
 
-    This is an implementation of the StandardModel interface.
+def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
+                    answer: str,
+                    history: List[Dict[str, str]]) -> AnswerCallback:
+    if not session:
+        return "", [{"role": "assistant", "content": 'Для начала тебе необходимо начать экзамен!'}], None
+    
+    session.process_answer(answer)
+    user_elem = session.history[-2]
+    assist_elem = session.history[-1]
+    history.append({"role": "user", "content": user_elem.content})
+    history.append({"role": "assistant", "content": assist_elem.content})
 
-    So it implements:
-        * predict() method with the initial_data as a parameter;
-    """
+    return "", history, session, user_elem.evaluation_result.evaluation_score, assist_elem.blum_level
 
-    @request_handler
-    def predict(self, params, **context):
-        """
-        Make prediction.
+def show_report(session: Optional[SlidingKnowledgeDiagnostics]) -> str:
+    if session:
+        report = session.get_report()
+        if isinstance(report, dict):
+            return report["status"]
+        return report
+    return "Нет активной сессии."
 
-        :param initial_data: simple model initial data.
-        :param context: request context.
-        :return:
-        Prediction result.
-        In this simple case it is just a byte array representation of a
-        constant value = 'Prediction result'.
-        """
-        call_id = uuid.uuid4()
-        
-        status_code = 200
+with gr.Blocks(theme=gr.themes.Soft()) as demo:
+    gr.Markdown("# Скользящая диагностика")
 
-        data = params.get("structured_data", {})
-        configuration = params.get("configuration", {})
+    with gr.Row():
+        with gr.Column(scale=1):
+            topic = gr.Dropdown(
+                label="Выберите тему экзамена",
+                choices=["Животные"],
+            )
+            start_btn = gr.Button("Начать экзамен")
+            session_info = gr.Textbox(label="Информация о сессии", interactive=False)
+            current_level = gr.Textbox(label="Текущий уровень Блума", value="Знание")
+            score = gr.Textbox(label="Текущий score", value="-")
+            state = gr.State()
 
-        if assistant is None:
-            result = {
-                "error": str(web.HTTPException(reason="Assistant model is unavailable")),
-                "stackTrace": None
-            }
-            logger.exception("Service error: " + str(result))
-            model_execution_time = 0
-            status_code = 503
-            return result, model_execution_time, status_code
+        with gr.Column(scale=2):
+            chatbot = gr.Chatbot(type="messages", label="Диалог экзамена")
+            msg = gr.Textbox(label="Ваш ответ")
+            send_btn = gr.Button("Отправить ответ")
 
-        logger.info(f'Start processing request; CallId {call_id}')
-        shutdown_from_error = False
-        try:
-            since = time.time()
-            logger.info(f'Getting result from model; CallId {call_id}')
-            result, meta_result = assistant.predict_single_eval(data["request"], configuration)
-            result = {
-                "response_type": data["request_type"],
-                "response": result,
-                "skill_meta_result": meta_result
-            }
-            model_execution_time = time.time() - since
-        except TimeoutError as ex:
-            result = {
-                "error": str(ex),
-                "stackTrace": traceback.format_exc()
-            }
-            logger.exception(f"CallId {call_id} Assistant model error: " + str(result))
-            model_execution_time = time.time() - since
-            status_code = 408
-        except BrokenPipeError as ex:
-            result = {
-                "error": 'Possible OOM, setting shutdown. Error:' + str(ex),
-                "stackTrace": traceback.format_exc()
-            }
-            logger.exception(f"Possible OOM, setting shutdown. CallId {call_id}")
-            logger.exception("Service error: " + str(result))
-            model_execution_time = 0
-            status_code = 500
-            shutdown_from_error = True
-        except Exception as ex:
-            result = {
-                "error": str(ex),
-                "stackTrace": traceback.format_exc()
-            }
-            logger.exception(f"CallId {call_id} Assistant model error: " + str(result))
-            model_execution_time = 0
-            status_code = 400
+    start_btn.click(start_exam, [topic, chatbot], [session_info, chatbot, state])
+    send_btn.click(answer_question, [state, msg, chatbot], [msg, chatbot, state, score, current_level])
 
-        shutdown_event = context['shutdown_event']
-
-        if shutdown_from_error:
-            shutdown_event.set()
-
-        if shutdown_event.is_set():
-            logger.info('Cancelled')
-            return result, model_execution_time, status_code
-
-        return result, model_execution_time, status_code
-
-    @request_handler
-    def version(self, *args, **kwargs):
-        with open('VERSION') as f:
-            version: str = f.read().strip()
-        return {
-            'version': version
-        }
-
+    with gr.Tab("Отчет"):
+        report_box = gr.Textbox(label="Отчет", lines=8)
+        show_btn = gr.Button("Показать отчет")
+        out = gr.Textbox()
+        show_btn.click(show_report, [state], [report_box])
 
 if __name__ == "__main__":
-    from model.model_app import app
-    from model_assistant import assistant_model_config
-
-    app.run(model=AssistantModel(), configs={assistant_model_config})
+    from dotenv import load_dotenv
+    load_dotenv()
+    demo.launch()

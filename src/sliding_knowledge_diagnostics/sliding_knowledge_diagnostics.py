@@ -71,7 +71,7 @@ class SlidingKnowledgeDiagnostics:
 
             if not self._check_if_attempts_exists():
                 self.report = self.report_generator.generate_report(self.history)
-                self.history.append({"role": "assistant", "content": EXAM_IS_DONE_BECAUSE_OF_MISTAKES})
+                self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_BECAUSE_OF_MISTAKES))
             else:
                 self.get_question_and_add_question_element_to_history()
         elif 0.4 <= evaluation_result.evaluation_score < 0.6:
@@ -95,7 +95,7 @@ class SlidingKnowledgeDiagnostics:
         row: dict
     ) -> Dict[str, str]:
         if row["answer"]:
-            gt_answer = f"Ответ: {row["answer"]}. Решение: {row["problem"]}"
+            gt_answer = f"Ответ: {row['answer']}. Решение: {row['problem']}"
         else:
             gt_answer = row["problem"]
 
