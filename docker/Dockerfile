@@ -15,7 +15,8 @@ RUN pip install --upgrade pip && \
       gradio==5.44.1 \
       yandex-cloud-ml-sdk==0.15.0 \
       pandas==2.2.3 \
-      dotenv==0.9.9
+      dotenv \
+      openai
 
 COPY src/ /app/src
 COPY app.py /app/app.py
