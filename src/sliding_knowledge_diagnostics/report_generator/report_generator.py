@@ -7,23 +7,33 @@ from src.sliding_knowledge_diagnostics.report_generator.prompts import (
 )
 from src.sliding_knowledge_diagnostics.utils import HistoryElement
 from src.llm import LLM
+from src.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ReportGenerator:
     def __init__(
             self
     ):
+        logger.info("Инициализация ReportGenerator")
         self.llm = LLM()
         self.system_prompt = REPORT_GENERATOR_SYSTEM_PROMPT
         self.user_template = REPORT_GENERATOR_USER_TEMPLATE
+        logger.info("ReportGenerator успешно инициализирован")
 
     def generate_report(
             self,
             history: List[Dict[str, str]]
     ) -> str:
+        logger.info("Генерация отчета по результатам экзамена")
+        logger.debug(f"Количество элементов в истории: {len(history)}")
+        
         structured_data = self._extract_data_for_report(
             history=history
         )
+        logger.debug(f"Структурированные данные подготовлены. Размер: {len(structured_data)} символов")
+        
         messages = [
             {
                 "role": "system",
@@ -37,9 +47,12 @@ class ReportGenerator:
             }
         ]
 
+        logger.info("Отправляем запрос к LLM для генерации отчета")
         report = self.llm.run(
             messages=messages
         )
+        logger.info(f"Отчет сгенерирован. Длина отчета: {len(report)} символов")
+        logger.debug(f"Отчет: {report[:200]}...")
 
         return report
     

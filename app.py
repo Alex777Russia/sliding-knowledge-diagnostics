@@ -3,36 +3,121 @@ import gradio as gr
 from typing import Optional, Dict, List, Tuple
 from src.sliding_knowledge_diagnostics.sliding_knowledge_diagnostics import SlidingKnowledgeDiagnostics
 from src.utils import EXAM_IS_NOT_DONE_MESSAGE, prettify_numbered_text
+from src.audio import AudioTranscriber
+from src.logging_config import get_logger
 
-StartCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics]
-AnswerCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, float, str]
+logger = get_logger(__name__)
+
+StartCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, bool]
+AnswerCallback = Tuple[str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, float, str, bool]
+AudioCallback = Tuple[str, str, List[Dict[str, str]], SlidingKnowledgeDiagnostics, float, str, str, bool]
+
+# Инициализация аудио транскриптера
+try:
+    logger.info("Инициализация аудио транскриптера...")
+    audio_transcriber = AudioTranscriber()
+    logger.info("Аудио транскриптер успешно инициализирован")
+except Exception as e:
+    logger.error(f"Ошибка инициализации аудио транскриптера: {e}")
+    audio_transcriber = None
 
 def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
+    logger.info(f"Начало экзамена по теме: {topic}")
     session = SlidingKnowledgeDiagnostics()
     session.get_question_and_add_question_element_to_history()
     hist_elem = session.history[-1]
     first_question = hist_elem.content
+    
+    # Проверяем, требует ли вопрос голосового ответа
+    requires_voice = hist_elem.voice_answer_available if hasattr(hist_elem, 'voice_answer_available') else False
+    
     first_message = f"""
         Привет! Я помогу тебе проверить свои знания по теме {topic}, 
         вот мой первый вопрос:
         {first_question}
     """
     history.append({"role": "assistant", "content": prettify_numbered_text(first_message)})
-    return f"Экзамен начат по теме: {topic}", history, session
+    logger.info(f"Экзамен успешно начат. Требуется голосовой ответ: {requires_voice}")
+    return f"Экзамен начат по теме: {topic}", history, session, requires_voice
 
 def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
                     answer: str,
                     history: List[Dict[str, str]]) -> AnswerCallback:
+    logger.info(f"Обработка текстового ответа: {answer[:50]}...")
     if not session:
-        return "", [{"role": "assistant", "content": 'Для начала тебе необходимо начать экзамен!'}], None
+        logger.warning("Попытка ответить без активной сессии")
+        return "", [{"role": "assistant", "content": 'Для начала тебе необходимо начать экзамен!'}], None, 0.0, "", False
     
     session.process_answer(answer)
     user_elem = session.history[-2]
     assist_elem = session.history[-1]
+
+    print('assist_elem')
+    print(assist_elem)
+
+    # Проверяем, требует ли следующий вопрос голосового ответа
+    requires_voice = False
+    if hasattr(assist_elem, 'voice_answer_available'):
+        requires_voice = assist_elem.voice_answer_available
+
     history.append({"role": "user", "content": user_elem.content})
     history.append({"role": "assistant", "content": prettify_numbered_text(assist_elem.content)})
+    logger.info(f"Ответ обработан. Score: {user_elem.evaluation_result.evaluation_score}, Уровень: {assist_elem.blum_level}, Требуется голос: {requires_voice}")
+    return "", history, session, user_elem.evaluation_result.evaluation_score, assist_elem.blum_level, requires_voice
 
-    return "", history, session, user_elem.evaluation_result.evaluation_score, assist_elem.blum_level
+def process_audio_answer(session: Optional[SlidingKnowledgeDiagnostics],
+                        audio_file: str,
+                        history: List[Dict[str, str]]) -> AudioCallback:
+    """
+    Обработка аудио ответа: транскрипция + обработка ответа
+    """
+    logger.info(f"Обработка аудио ответа. Файл: {audio_file}")
+    
+    if not session:
+        logger.warning("Попытка аудио ответа без активной сессии")
+        return "", "", [{"role": "assistant", "content": 'Для начала тебе необходимо начать экзамен!'}], None, 0.0, "", None, False
+    
+    # Проверяем, что аудио файл предоставлен и корректен
+    if not audio_file or audio_file is None:
+        logger.warning("Аудио файл не предоставлен")
+        return "", "", [{"role": "assistant", "content": 'Пожалуйста, запишите аудио ответ!'}], session, 0.0, "", None, False
+    
+    # Дополнительные проверки
+    if not isinstance(audio_file, str) or not os.path.exists(audio_file) or os.path.isdir(audio_file):
+        logger.warning(f"Некорректный аудио файл: {audio_file}")
+        return "", "", [{"role": "assistant", "content": 'Пожалуйста, запишите аудио ответ!'}], session, 0.0, "", None, False
+    
+    # Проверяем, что транскриптер доступен
+    if not audio_transcriber:
+        logger.error("Аудио транскриптер не инициализирован")
+        return "", "", [{"role": "assistant", "content": 'Аудио транскрипция недоступна. Проверьте настройки API.'}], session, 0.0, "", None, False
+    
+    # Транскрибируем аудио
+    logger.info("Начинаем транскрипцию аудио...")
+    transcribed_text = audio_transcriber.transcribe_audio(audio_file, language="ru")
+    logger.info(f"Транскрипция завершена: {transcribed_text[:100]}...")
+    
+    if not transcribed_text or transcribed_text.startswith("Ошибка"):
+        logger.error(f"Ошибка транскрипции: {transcribed_text}")
+        return "", "", [{"role": "assistant", "content": f'Ошибка транскрипции: {transcribed_text}'}], session, 0.0, "", None, False
+    
+    # Обрабатываем транскрибированный текст как обычный ответ
+    logger.info("Обрабатываем транскрибированный текст...")
+    logger.info(f"Транскрибированный текст: {transcribed_text}")
+    session.process_answer(transcribed_text)
+    user_elem = session.history[-2]
+    assist_elem = session.history[-1]
+    
+    # Проверяем, требует ли следующий вопрос голосового ответа
+    requires_voice = False
+    if hasattr(assist_elem, 'voice_answer_available'):
+        requires_voice = assist_elem.voice_answer_available
+    
+    history.append({"role": "user", "content": f"[Аудио] {user_elem.content}"})
+    history.append({"role": "assistant", "content": prettify_numbered_text(assist_elem.content)})
+    
+    logger.info(f"Аудио ответ обработан. Score: {user_elem.evaluation_result.evaluation_score}, Уровень: {assist_elem.blum_level}, Требуется голос: {requires_voice}")
+    return None, transcribed_text, history, session, user_elem.evaluation_result.evaluation_score, assist_elem.blum_level, None, requires_voice
 
 def show_report(session: Optional[SlidingKnowledgeDiagnostics]) -> str:
     if session:
@@ -59,11 +144,66 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
         with gr.Column(scale=2):
             chatbot = gr.Chatbot(type="messages", label="Диалог экзамена")
-            msg = gr.Textbox(label="Ваш ответ")
-            send_btn = gr.Button("Отправить ответ")
+            
+            with gr.Tabs() as tabs:
+                with gr.Tab("Текстовый ответ", id="text_tab"):
+                    msg = gr.Textbox(label="Ваш ответ")
+                    send_btn = gr.Button("Отправить ответ")
+                
+                with gr.Tab("Голосовой ответ", id="voice_tab"):
+                    audio_input = gr.Audio(
+                        sources=["microphone"], 
+                        type="filepath",
+                        # label="Запишите или загрузите аудио ответ",
+                        value=None
+                    )
+                    audio_send_btn = gr.Button("Отправить аудио ответ")
+                    transcribed_text = gr.Textbox(
+                        label="Распознанный текст", 
+                        interactive=False,
+                        visible=True
+                    )
 
-    start_btn.click(start_exam, [topic, chatbot], [session_info, chatbot, state])
-    send_btn.click(answer_question, [state, msg, chatbot], [msg, chatbot, state, score, current_level])
+    # Создаем состояние для отслеживания необходимости голосового ответа
+    voice_required_state = gr.State(False)
+    
+    # Функция для переключения вкладок
+    def switch_tab_based_on_voice(requires_voice):
+        if requires_voice:
+            return gr.update(selected="voice_tab")
+        else:
+            return gr.update(selected="text_tab")
+    
+    # Обработчики событий с автоматическим переключением вкладок
+    start_btn.click(
+        start_exam, 
+        [topic, chatbot], 
+        [session_info, chatbot, state, voice_required_state]
+    ).then(
+        switch_tab_based_on_voice,
+        inputs=[voice_required_state],
+        outputs=[tabs]
+    )
+    
+    send_btn.click(
+        answer_question, 
+        [state, msg, chatbot], 
+        [msg, chatbot, state, score, current_level, voice_required_state]
+    ).then(
+        switch_tab_based_on_voice,
+        inputs=[voice_required_state],
+        outputs=[tabs]
+    )
+    
+    audio_send_btn.click(
+        process_audio_answer, 
+        [state, audio_input, chatbot], 
+        [gr.State(None), transcribed_text, chatbot, state, score, current_level, audio_input, voice_required_state]
+    ).then(
+        switch_tab_based_on_voice,
+        inputs=[voice_required_state],
+        outputs=[tabs]
+    )
 
     with gr.Tab("Отчет"):
         report_box = gr.Textbox(label="Сырой отчет (можно редактировать)", lines=8)
@@ -74,6 +214,9 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
 
 
 if __name__ == "__main__":
+    logger.info("Запуск приложения...")
     from dotenv import load_dotenv
     load_dotenv()
+    logger.info("Переменные окружения загружены")
+    logger.info("Запуск Gradio интерфейса...")
     demo.launch()
