@@ -43,16 +43,6 @@ class SlidingKnowledgeDiagnostics:
         # logger.info("SlidingKnowledgeDiagnostics успешно инициализирован")
 
     def get_question_and_add_question_element_to_history(self) -> None:
-        # row = self.questions_df[
-        #     self.questions_df['blum_level'] == self.current_blum_level
-        # ].iloc[0]
-        # self.questions_df = self.questions_df.drop(index=row.name)
-        # self.history.append(
-        #     self._create_history_elem_from_row(
-        #         role="assistant",
-        #         row=row
-        #     )
-        # )
         # Попытка найти вопрос для текущего уровня Блума
         available_questions = self.questions_df[
             self.questions_df['blum_level'] == self.current_blum_level
