@@ -4,7 +4,6 @@ import re
 EXAM_IS_DONE_MESSAGE = "Экзамен завершен! Если хочешь начать новый, нажми кнопку 'Начать экзамен'"
 EXAM_IS_DONE_BECAUSE_OF_MISTAKES = "Спасибо, экзамен завершен!"
 EXAM_IS_NOT_DONE_MESSAGE = "Экзамен ещё не завершён."
-VOICE_INPUT_AVAILABLE_MESSAGE = "\n\n🎤 **Пожалуйста, ответьте на этот вопрос голосом, используя вкладку 'Голосовой ответ'.**"
 
 @dataclass
 class StudentRequest:
