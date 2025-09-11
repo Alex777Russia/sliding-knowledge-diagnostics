@@ -239,3 +239,4 @@ class SlidingKnowledgeDiagnostics:
         logger.error("Не удалось найти ни одного уровня Блума с доступными вопросами")
         return False
     
+
