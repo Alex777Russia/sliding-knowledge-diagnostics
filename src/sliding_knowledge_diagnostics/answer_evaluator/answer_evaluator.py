@@ -75,7 +75,7 @@ class AnswerEvaluator:
 
         logger.info(f"Финальная оценка: {evaluation_score}, комментарий: {evaluation_comment[:100]}...")
         return EvaluationResult(
-            evaluation_score=evaluation_score,
+            evaluation_score=evaluation_score or 0,
             evaluation_comment=evaluation_comment
         )
     
