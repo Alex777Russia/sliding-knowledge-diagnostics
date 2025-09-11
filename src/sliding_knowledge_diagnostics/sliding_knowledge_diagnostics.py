@@ -43,44 +43,34 @@ class SlidingKnowledgeDiagnostics:
         # logger.info("SlidingKnowledgeDiagnostics успешно инициализирован")
 
     def get_question_and_add_question_element_to_history(self) -> None:
-        row = self.questions_df[
-            self.questions_df['blum_level'] == self.current_blum_level
-        ].iloc[0]
-        self.questions_df = self.questions_df.drop(index=row.name)
-        self.history.append(
-            self._create_history_elem_from_row(
-                role="assistant",
-                row=row
-            )
-        )
         # Попытка найти вопрос для текущего уровня Блума
-        # available_questions = self.questions_df[
-        #     self.questions_df['blum_level'] == self.current_blum_level
-        # ]
+        available_questions = self.questions_df[
+            self.questions_df['blum_level'] == self.current_blum_level
+        ]
             
-        # if len(available_questions) > 0:
-        #     # Есть вопросы для текущего уровня
-        #     row = available_questions.iloc[0]
-        #     logger.debug(f"Выбран вопрос: {row['problem'][:100]}...")
-        #     self.questions_df = self.questions_df.drop(index=row.name)
-        #     self.history.append(
-        #         self._create_history_elem_from_row(
-        #             role="assistant",
-        #             row=row
-        #         )
-        #     )
-        #     logger.info(f"Вопрос добавлен в историю. Осталось вопросов: {len(self.questions_df)}")
-        # else:
-        #     # Нет вопросов для текущего уровня, пытаемся взять следующий уровень
-        #     logger.warning(f"Нет вопросов для уровня {self.current_blum_level}. Пытаемся взять следующий уровень.")
-        #     if self._try_get_next_blum_level():
-        #         # Рекурсивно вызываем метод для нового уровня
-        #         self.get_question_and_add_question_element_to_history()
-        #     else:
-        #         # Не удалось найти подходящий уровень, завершаем экзамен
-        #         logger.error("Не удалось найти подходящие вопросы. Завершаем экзамен.")
-        #         self.report = self.report_generator.generate_report(self.history)
-        #         self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_BECAUSE_OF_MISTAKES))
+        if len(available_questions) > 0:
+            # Есть вопросы для текущего уровня
+            row = available_questions.iloc[0]
+            logger.debug(f"Выбран вопрос: {row['problem'][:100]}...")
+            self.questions_df = self.questions_df.drop(index=row.name)
+            self.history.append(
+                self._create_history_elem_from_row(
+                    role="assistant",
+                    row=row
+                )
+            )
+            logger.info(f"Вопрос добавлен в историю. Осталось вопросов: {len(self.questions_df)}")
+        else:
+            # Нет вопросов для текущего уровня, пытаемся взять следующий уровень
+            logger.warning(f"Нет вопросов для уровня {self.current_blum_level}. Пытаемся взять следующий уровень.")
+            if self._try_get_next_blum_level():
+                # Рекурсивно вызываем метод для нового уровня
+                self.get_question_and_add_question_element_to_history()
+            else:
+                # Не удалось найти подходящий уровень, завершаем экзамен
+                logger.error("Не удалось найти подходящие вопросы. Завершаем экзамен.")
+                self.report = self.report_generator.generate_report(self.history)
+                self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_BECAUSE_OF_MISTAKES))
 
 
     def add_user_element_to_history(
