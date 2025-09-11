@@ -7,9 +7,6 @@ from src.sliding_knowledge_diagnostics.clarrifying_question_generator.prompts im
     CLARRIFYING_QUESTION_GENERATOR_USER_TEMPLATE
 )
 from src.llm import LLM
-from src.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 
 class ClarrifyingQuestionGenerator:
