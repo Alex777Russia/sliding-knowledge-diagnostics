@@ -18,6 +18,7 @@ class HistoryElement:
     blum_level: Optional[str] = None
     evaluation_result: Optional[EvaluationResult] = None
     voice_answer_available: bool = False
+    audio_file_path: Optional[str] = None
 
 
 def smart_json_loads(json_string):
