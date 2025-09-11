@@ -16,9 +16,7 @@ RUN pip install --upgrade pip && \
       yandex-cloud-ml-sdk==0.15.0 \
       pandas==2.2.3 \
       dotenv \
-      openai \
-      librosa \
-      soundfile
+      openai
 
 COPY src/ /app/src
 COPY app.py /app/app.py
