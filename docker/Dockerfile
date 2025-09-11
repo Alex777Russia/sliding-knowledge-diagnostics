@@ -18,7 +18,9 @@ RUN pip install --upgrade pip && \
       dotenv \
       openai \
       librosa \
-      soundfile
+      soundfile \
+      markdown_pdf==1.9 \
+      matplotlib==3.10.0
 
 COPY src/ /app/src
 COPY app.py /app/app.py

@@ -261,12 +261,14 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
     )
 
     with gr.Tab("Отчет"):
+        gr.set_static_paths(paths=["report.pdf"])
         report_box = gr.Textbox(label="Сырой отчет (можно редактировать)", lines=8)
         show_btn = gr.Button("Показать отчет")
+        gr.DownloadButton(label="Скачать отчет", value="report.pdf")
         show_btn.click(show_report, [state], [report_box])
         output = gr.Markdown()
         report_box.change(lambda x: x, inputs=report_box, outputs=output)
-
+        
 
 if __name__ == "__main__":
     logger.info("Запуск приложения...")
