@@ -7,6 +7,7 @@ from src.sliding_knowledge_diagnostics.report_generator import ReportGenerator
 from src.sliding_knowledge_diagnostics.utils import EvaluationResult, HistoryElement
 from src.utils import EXAM_IS_DONE_BECAUSE_OF_MISTAKES, EXAM_IS_DONE_MESSAGE, EXAM_IS_NOT_DONE_MESSAGE
 from src.logging_config import get_logger
+from src.audio import TextToSpeech
 
 logger = get_logger(__name__)
 
@@ -30,6 +31,15 @@ class SlidingKnowledgeDiagnostics:
         self.answer_evaluator = AnswerEvaluator()
         self.clarrifying_question_generator = ClarrifyingQuestionGenerator()
         self.report_generator = ReportGenerator()
+        
+        # Инициализация TTS для озвучки вопросов
+        try:
+            self.text_to_speech = TextToSpeech()
+            logger.info("TTS генератор успешно инициализирован")
+        except Exception as e:
+            logger.error(f"Ошибка инициализации TTS: {e}")
+            self.text_to_speech = None
+        
         # logger.info("SlidingKnowledgeDiagnostics успешно инициализирован")
 
     def get_question_and_add_question_element_to_history(self) -> None:
@@ -42,50 +52,52 @@ class SlidingKnowledgeDiagnostics:
                 role="assistant",
                 row=row
             )
-        )        
-    #     # Попытка найти вопрос для текущего уровня Блума
-    #     available_questions = self.questions_df[
-    #         self.questions_df['blum_level'] == self.current_blum_level
-    #     ]
-        
-    #     if len(available_questions) > 0:
-    #         # Есть вопросы для текущего уровня
-    #         row = available_questions.iloc[0]
-    #         logger.debug(f"Выбран вопрос: {row['problem'][:100]}...")
-    #         self.questions_df = self.questions_df.drop(index=row.name)
-    #         self.history.append(
-    #             self._create_history_elem_from_row(
-    #                 role="assistant",
-    #                 row=row
-    #             )
-    #         )
-    #         logger.info(f"Вопрос добавлен в историю. Осталось вопросов: {len(self.questions_df)}")
-    #     else:
-    #         # Нет вопросов для текущего уровня, пытаемся взять следующий уровень
-    #         logger.warning(f"Нет вопросов для уровня {self.current_blum_level}. Пытаемся взять следующий уровень.")
-    #         if self._try_get_next_blum_level():
-    #             # Рекурсивно вызываем метод для нового уровня
-    #             self.get_question_and_add_question_element_to_history()
-    #         else:
-    #             # Не удалось найти подходящий уровень, завершаем экзамен
-    #             logger.error("Не удалось найти подходящие вопросы. Завершаем экзамен.")
-    #             self.report = self.report_generator.generate_report(self.history)
-    #             self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_BECAUSE_OF_MISTAKES))
+        )
+        # Попытка найти вопрос для текущего уровня Блума
+        # available_questions = self.questions_df[
+        #     self.questions_df['blum_level'] == self.current_blum_level
+        # ]
+            
+        # if len(available_questions) > 0:
+        #     # Есть вопросы для текущего уровня
+        #     row = available_questions.iloc[0]
+        #     logger.debug(f"Выбран вопрос: {row['problem'][:100]}...")
+        #     self.questions_df = self.questions_df.drop(index=row.name)
+        #     self.history.append(
+        #         self._create_history_elem_from_row(
+        #             role="assistant",
+        #             row=row
+        #         )
+        #     )
+        #     logger.info(f"Вопрос добавлен в историю. Осталось вопросов: {len(self.questions_df)}")
+        # else:
+        #     # Нет вопросов для текущего уровня, пытаемся взять следующий уровень
+        #     logger.warning(f"Нет вопросов для уровня {self.current_blum_level}. Пытаемся взять следующий уровень.")
+        #     if self._try_get_next_blum_level():
+        #         # Рекурсивно вызываем метод для нового уровня
+        #         self.get_question_and_add_question_element_to_history()
+        #     else:
+        #         # Не удалось найти подходящий уровень, завершаем экзамен
+        #         logger.error("Не удалось найти подходящие вопросы. Завершаем экзамен.")
+        #         self.report = self.report_generator.generate_report(self.history)
+        #         self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_BECAUSE_OF_MISTAKES))
 
 
     def add_user_element_to_history(
             self, 
-            answer: str
+            answer: str,
+            audio_file_path: str = None
         ) -> None:
         logger.debug(f"Добавление ответа пользователя в историю: {answer[:100]}...")
         self.history.append(
             HistoryElement(
                 role="user",
-                content=answer
+                content=answer,
+                audio_file_path=audio_file_path
             )
         )
 
-    def process_answer(self, answer: str) -> None:
+    def process_answer(self, answer: str, audio_file_path: str = None) -> None:
         logger.info(f"Обработка ответа пользователя.")
         
         if self.report:
@@ -97,7 +109,7 @@ class SlidingKnowledgeDiagnostics:
                 )
             ]
 
-        self.add_user_element_to_history(answer)
+        self.add_user_element_to_history(answer, audio_file_path)
 
         logger.info("Начинаем оценку ответа")
         evaluation_result = self.answer_evaluator.evaluate_answer(
@@ -141,8 +153,8 @@ class SlidingKnowledgeDiagnostics:
         # logger.info("Экзамен еще не завершен")
         return {"status": EXAM_IS_NOT_DONE_MESSAGE}
 
-    @staticmethod
     def _create_history_elem_from_row(
+            self,
             role: str,
             row: dict
     ) -> Dict[str, str]:
@@ -155,15 +167,30 @@ class SlidingKnowledgeDiagnostics:
         question_text = row["problem"]
 
         # Если доступен голосовой ответ, добавляем просьбу ответить голосом
-        if row.get("voice_answer_available", False):
+        voice_answer_available = row.get("voice_answer_available", False)
+        if voice_answer_available:
             question_text += "\n\n🎤 **Пожалуйста, ответьте на этот вопрос голосом, используя вкладку 'Голосовой ответ'.**"
+
+        # Генерируем озвучку для вопросов, требующих голосового ответа
+        audio_file_path = None
+        if voice_answer_available and self.text_to_speech:
+            try:
+                logger.info("Генерируем озвучку для вопроса")
+                audio_file_path = self.text_to_speech.generate_speech_for_question(row["problem"])
+                if audio_file_path:
+                    logger.info(f"Озвучка сгенерирована: {audio_file_path}")
+                else:
+                    logger.warning("Не удалось сгенерировать озвучку")
+            except Exception as e:
+                logger.error(f"Ошибка при генерации озвучки: {e}")
 
         return HistoryElement(
             role=role,
             content=question_text,
             gt_answer=gt_answer,
             blum_level=row["blum_level"],
-            voice_answer_available=row.get("voice_answer_available", False)
+            voice_answer_available=voice_answer_available,
+            audio_file_path=audio_file_path
         )
     
     def _decrease_available_attempts(
