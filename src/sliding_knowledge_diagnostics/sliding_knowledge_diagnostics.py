@@ -84,6 +84,7 @@ class SlidingKnowledgeDiagnostics:
             self.current_blum_level = self.bloom_oreder_reversed.pop()
             return True
         except IndexError:
+            self.current_blum_level = ''
             return False
     
     @log_function_call(log_result=True)
@@ -127,11 +128,9 @@ class SlidingKnowledgeDiagnostics:
             )
             self.history.append(question_element)
         else:
-            if not self._set_next_blum_level_and_get_status():
-                self._generate_report_and_set_status()
-            else:
-                self._update_max_passed_level()
-                self.get_question_and_add_question_element_to_history()
+            self._set_next_blum_level_and_get_status()
+            self._update_max_passed_level()
+            self.get_question_and_add_question_element_to_history()
 
     @log_function_call()
     def _add_evaluation_results_to_history(
