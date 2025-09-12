@@ -3,10 +3,8 @@ import os
 from typing import List
 from yandex_cloud_ml_sdk import YCloudML
 
+from src.custom_logger import log_function_call
 from src.llm.utils import LLMMessage
-from src.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 
 class LLM:
@@ -17,6 +15,7 @@ class LLM:
         self.api_key = os.getenv("YANDEX_API_KEY", None)
         self.model = self._create_sdk()
     
+    @log_function_call
     def _create_sdk(
             self
     ) -> YCloudML:
@@ -34,6 +33,7 @@ class LLM:
 
         raise RuntimeError(f'LLM Error - {last_e}')
     
+    @log_function_call(log_result=True)
     def run(
             self,
             messages: List[LLMMessage],

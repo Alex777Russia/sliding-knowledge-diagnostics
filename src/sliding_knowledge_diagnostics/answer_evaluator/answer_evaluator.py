@@ -1,6 +1,7 @@
 import json
 from typing import Dict, List, Tuple
 
+from src.custom_logger import log_function_call
 from src.sliding_knowledge_diagnostics.utils import EvaluationResult, HistoryElement, smart_json_loads
 from src.sliding_knowledge_diagnostics.answer_evaluator.prompts import (
     ANSWER_EVALUATOR_SYSTEM_PROMPT, 
@@ -9,9 +10,6 @@ from src.sliding_knowledge_diagnostics.answer_evaluator.prompts import (
     VOICE_ANALYZER_USER_TEMPLATE
 )
 from src.llm import LLM
-from src.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 
 class AnswerEvaluator:
@@ -22,6 +20,7 @@ class AnswerEvaluator:
         self.system_prompt = ANSWER_EVALUATOR_SYSTEM_PROMPT
         self.user_template = ANSWER_EVALUATOR_USER_TEMPLATE
 
+    @log_function_call
     def evaluate_answer(
             self,
             history: List[Dict[str, str]]
@@ -78,6 +77,7 @@ class AnswerEvaluator:
             question_element.blum_level
         )
     
+    @log_function_call
     def _enhance_voice_analysis_with_evaluation(
             self, 
             voice_analysis: str, 

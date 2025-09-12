@@ -1,12 +1,12 @@
 import librosa
 import numpy as np
 from typing import Dict
-from src.logging_config import get_logger
 
-logger = get_logger(__name__)
+from src.custom_logger import log_function_call
 
 
 class VoiceAnalyzer:
+    @log_function_call
     def analyze_audio(self, audio_file_path: str) -> Dict:
         try:
             y, sr = librosa.load(audio_file_path, sr=None)
@@ -27,6 +27,7 @@ class VoiceAnalyzer:
         except Exception as e:
             return self._get_default_features()
     
+    @log_function_call
     def _calculate_speech_rate(self, y: np.ndarray, sr: int) -> Dict:
         try:
             intervals = librosa.effects.split(y, top_db=20)
@@ -48,6 +49,7 @@ class VoiceAnalyzer:
         except Exception as e:
             return {'words_per_minute': 0, 'speech_segments': 0}
     
+    @log_function_call
     def _analyze_pauses(self, y: np.ndarray, sr: int) -> Dict:
         try:
             intervals = librosa.effects.split(y, top_db=20)
@@ -78,6 +80,7 @@ class VoiceAnalyzer:
         except Exception as e:
             return {'long_pauses_count': 0, 'avg_pause_length': 0, 'pause_ratio': 0}
     
+    @log_function_call
     def _analyze_phonetics(self, y: np.ndarray, sr: int) -> Dict:
         try:
             mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
@@ -102,6 +105,7 @@ class VoiceAnalyzer:
         except Exception as e:
             return {'speech_stability': 0, 'spectral_variation': 0}
     
+    @log_function_call
     def _analyze_prosody(self, y: np.ndarray, sr: int) -> Dict:
         try:
             pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
@@ -137,6 +141,7 @@ class VoiceAnalyzer:
         except Exception as e:
             return {'pitch_variation': 0, 'energy_variation': 0, 'monotony': 1}
     
+    @log_function_call
     def _analyze_emotions(self, y: np.ndarray, sr: int) -> Dict:
         try:
             mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)

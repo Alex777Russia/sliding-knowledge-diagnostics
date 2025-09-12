@@ -3,6 +3,7 @@ import tempfile
 import logging
 from typing import Optional
 from openai import OpenAI
+from src.custom_logger import log_function_call
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +16,27 @@ class AudioTranscriber:
     ):
         self.client = OpenAI(api_key=api_key)
     
+    @log_function_call(log_result=True)
+    def transcribe_audio_bytes(
+            self, 
+            audio_bytes: bytes, 
+            language: str = "ru",
+            model: str = "gpt-4o-mini-transcribe"
+    ) -> str:
+        try:
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                temp_file.write(audio_bytes)
+                temp_file_path = temp_file.name
+            
+            result = self.transcribe_audio(temp_file_path, language, model)
+            
+            os.unlink(temp_file_path)
+            
+            return result
+        except Exception as e:
+            return f"Ошибка при транскрипции аудио: {str(e)}"
+
+    @log_function_call(log_result=True)
     def transcribe_audio(
             self, 
             filepath: str, 
@@ -45,22 +67,3 @@ class AudioTranscriber:
             return transcript.strip()
         except Exception as e:
             return f"Ошибка при транскрипции: {str(e)}"
-    
-    def transcribe_audio_bytes(
-            self, 
-            audio_bytes: bytes, 
-            language: str = "ru",
-            model: str = "gpt-4o-mini-transcribe"
-    ) -> str:
-        try:
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                temp_file.write(audio_bytes)
-                temp_file_path = temp_file.name
-            
-            result = self.transcribe_audio(temp_file_path, language, model)
-            
-            os.unlink(temp_file_path)
-            
-            return result
-        except Exception as e:
-            return f"Ошибка при транскрипции аудио: {str(e)}"

@@ -1,15 +1,13 @@
 import json
 from typing import Dict, List, Tuple
 
+from src.custom_logger import log_function_call
 from src.sliding_knowledge_diagnostics.utils import HistoryElement, smart_json_loads
 from src.sliding_knowledge_diagnostics.clarrifying_question_generator.prompts import (
     CLARRIFYING_QUESTION_GENERATOR_SYSTEM_PROMPT, 
     CLARRIFYING_QUESTION_GENERATOR_USER_TEMPLATE
 )
 from src.llm import LLM
-from src.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 
 class ClarrifyingQuestionGenerator:
@@ -20,6 +18,7 @@ class ClarrifyingQuestionGenerator:
         self.system_prompt = CLARRIFYING_QUESTION_GENERATOR_SYSTEM_PROMPT
         self.user_template = CLARRIFYING_QUESTION_GENERATOR_USER_TEMPLATE
 
+    @log_function_call
     def get_clarrifying_question_element(
             self,
             history: List[Dict[str, str]]

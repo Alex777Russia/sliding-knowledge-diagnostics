@@ -2,6 +2,7 @@ from copy import copy
 from typing import Any, Dict
 import pandas as pd
 
+from src.custom_logger import log_function_call
 from src.sliding_knowledge_diagnostics.answer_evaluator import AnswerEvaluator
 from src.sliding_knowledge_diagnostics.clarrifying_question_generator import ClarrifyingQuestionGenerator
 from src.sliding_knowledge_diagnostics.report_generator import ReportGenerator
@@ -12,10 +13,7 @@ from src.utils import (
     EXAM_IS_NOT_DONE_MESSAGE, 
     VOICE_INPUT_AVAILABLE_MESSAGE
 )
-from src.logging_config import get_logger
 from src.audio import TextToSpeech
-
-logger = get_logger(__name__)
 
 
 BLOOM_ORDER_REVERSED = ["Знание", "Понимание", "Применение", "Анализ", "Синтез", "Оценка"][::-1]
@@ -41,7 +39,7 @@ class SlidingKnowledgeDiagnostics:
         except:
             self.text_to_speech = None
         
-
+    @log_function_call
     def get_question_and_add_question_element_to_history(self) -> None:
         available_questions = self.questions_df[
             self.questions_df['blum_level'] == self.current_blum_level
@@ -63,6 +61,7 @@ class SlidingKnowledgeDiagnostics:
                 self._generate_report_and_set_status()
                 self.history.append(HistoryElement(role="assistant", content=EXAM_IS_DONE_MESSAGE))
 
+    @log_function_call
     def add_user_element_to_history(
             self, 
             answer: str,
@@ -76,7 +75,8 @@ class SlidingKnowledgeDiagnostics:
                 blum_level=self.current_blum_level
             )
         )
-    
+
+    @log_function_call
     def _set_next_blum_level_and_get_status(
             self,
     ) -> bool:
@@ -85,13 +85,15 @@ class SlidingKnowledgeDiagnostics:
             return True
         except IndexError:
             return False
-        
+    
+    @log_function_call(log_result=True)
     def _generate_report_and_set_status(
             self
-    ) -> None:
+    ) -> str:
         self.report = self.report_generator.generate_report(self.history)
+        return self.report
 
-
+    @log_function_call
     def process_answer(self, answer: str, audio_file_path: str = None) -> None:        
         if self.report:
             return [
@@ -129,28 +131,35 @@ class SlidingKnowledgeDiagnostics:
             self._update_max_passed_level()
             self.get_question_and_add_question_element_to_history()
 
+    @log_function_call()
     def _add_evaluation_results_to_history(
             self,
             evaluation_result: EvaluationResult
     ) -> None:
         self.history[-1].evaluation_result = evaluation_result
 
+    @log_function_call(log_result=True)
     def _decrease_available_attempts(
             self
-    ) -> None:
+    ) -> int:
         self.available_attempts -= 1
+        return self.available_attempts
 
+    @log_function_call(log_result=True)
     def _check_if_attempts_exists(
             self
     ) -> bool:
         has_attempts = self.available_attempts > 0
         return has_attempts
 
+    @log_function_call(log_result=True)
     def _update_max_passed_level(
             self
-    ) -> None:
+    ) -> str:
         self.max_passed_level = self.current_blum_level
+        return self.max_passed_level
     
+    @log_function_call(log_result=True)
     def get_report(self):
         if self.report:
             return self.report

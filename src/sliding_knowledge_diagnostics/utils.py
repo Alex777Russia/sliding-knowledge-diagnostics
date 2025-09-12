@@ -3,6 +3,8 @@ from typing import Optional
 
 from dataclasses import dataclass
 
+from src.custom_logger import log_function_call
+
 
 @dataclass
 class EvaluationResult:
@@ -21,6 +23,7 @@ class HistoryElement:
     audio_file_path: Optional[str] = None
 
 
+@log_function_call(log_result=True)
 def smart_json_loads(json_string):
     try:
         start_index = json_string.find('{')

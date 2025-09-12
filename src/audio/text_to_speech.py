@@ -3,6 +3,7 @@ import tempfile
 import logging
 from typing import Optional
 from openai import OpenAI
+from src.custom_logger import log_function_call
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +12,7 @@ class TextToSpeech:
     def __init__(self, api_key: Optional[str] = None):
         self.client = OpenAI(api_key=api_key)
     
+    @log_function_call
     def generate_speech(
             self, 
             text: str, 

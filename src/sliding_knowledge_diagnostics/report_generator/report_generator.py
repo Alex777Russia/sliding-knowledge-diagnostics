@@ -6,6 +6,7 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 from typing import Dict, List
 
+from src.custom_logger import log_function_call
 from src.sliding_knowledge_diagnostics.answer_evaluator import AnswerEvaluator
 from src.sliding_knowledge_diagnostics.report_generator.prompts import (
     REPORT_GENERATOR_SYSTEM_PROMPT, 
@@ -13,12 +14,9 @@ from src.sliding_knowledge_diagnostics.report_generator.prompts import (
 )
 from src.sliding_knowledge_diagnostics.utils import HistoryElement
 from src.llm import LLM
-from src.logging_config import get_logger
 from src.audio import VoiceAnalyzer
 
 from markdown_pdf import MarkdownPdf, Section
-
-logger = get_logger(__name__)
 
 
 class ReportGenerator:
@@ -32,7 +30,8 @@ class ReportGenerator:
             self.voice_analyzer = VoiceAnalyzer()
         except Exception as e:
             self.voice_analyzer = None
-        
+
+    @log_function_call
     def generate_report(
             self,
             history: List[Dict[str, str]]
@@ -62,6 +61,7 @@ class ReportGenerator:
 
         return report
     
+    @log_function_call
     def _generate_pdf_report(
             self, 
             report: str, 
@@ -73,7 +73,6 @@ class ReportGenerator:
             score = getattr(h, "evaluation_result", None).evaluation_score if getattr(h, "evaluation_result", None) else None
             if lvl and score is not None:
                 level_scores[lvl].append(float(score))
-                logger.info(f'{level_scores[lvl]}')
 
         bloom_levels = ["Знание", "Понимание", "Применение", "Анализ", "Синтез", "Оценка"]
         avg_scores = {}
@@ -84,6 +83,7 @@ class ReportGenerator:
         chart_path = self._generate_radar_chart(bloom_levels, avg_scores)
         self._generate_pdf(report, chart_path)
 
+    @log_function_call
     def _generate_radar_chart(
             self, 
             bloom_levels: List[str], 
@@ -167,6 +167,7 @@ class ReportGenerator:
 
         return json.dumps(all_data, indent=4, ensure_ascii=False)
     
+    @log_function_call
     def _analyze_voice_for_report(self, audio_file_path: str) -> str:
         if not self.voice_analyzer or not os.path.exists(audio_file_path):
             return "Анализ голоса недоступен"

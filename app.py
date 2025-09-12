@@ -1,6 +1,7 @@
 import os
 import gradio as gr
 from typing import Optional, Dict, List, Tuple
+from src.custom_logger import log_function_call
 from src.sliding_knowledge_diagnostics.sliding_knowledge_diagnostics import SlidingKnowledgeDiagnostics
 from src.utils import (
     CURRENT_BLUM_LEVEL_LABEL, 
@@ -23,9 +24,6 @@ from src.utils import (
     prettify_numbered_text
 )
 from src.audio import AudioTranscriber, VoiceAnalyzer
-from src.logging_config import get_logger
-
-logger = get_logger(__name__)
 
 CURRENT_AVAILABLE_TOPICS = ["Животные"]
 DOWNLOAD_PATH = "report.pdf"
@@ -45,6 +43,7 @@ try:
 except Exception as e:
     voice_analyzer = None
 
+@log_function_call
 def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
     session = SlidingKnowledgeDiagnostics()
     session.get_question_and_add_question_element_to_history()
@@ -62,6 +61,7 @@ def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
     history.append({"role": "assistant", "content": prettify_numbered_text(first_message)})
     return f"Экзамен начат по теме: {topic}", history, session, requires_voice, audio_file_path or ""
 
+@log_function_call
 def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
                     answer: str,
                     history: List[Dict[str, str]]) -> AnswerCallback:
@@ -89,6 +89,7 @@ def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
         assist_elem.blum_level, requires_voice, audio_file_path or ""
     )
 
+@log_function_call
 def process_audio_answer(session: Optional[SlidingKnowledgeDiagnostics],
                         audio_file: str,
                         history: List[Dict[str, str]]) -> AudioCallback:
@@ -143,6 +144,7 @@ def process_audio_answer(session: Optional[SlidingKnowledgeDiagnostics],
         assist_elem.blum_level, None, requires_voice, audio_file_path or ""
     )
 
+@log_function_call
 def show_report(session: Optional[SlidingKnowledgeDiagnostics]) -> str:
     if session:
         report = session.get_report()
