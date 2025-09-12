@@ -58,8 +58,8 @@ def start_exam(topic: str, history: List[Dict[str, str]]) -> StartCallback:
         вот мой первый вопрос:
         {first_question}
     """
-    history.append({"role": "assistant", "content": prettify_numbered_text(first_message)})
-    return f"Экзамен начат по теме: {topic}", history, session, requires_voice, audio_file_path or ""
+    history = [{"role": "assistant", "content": prettify_numbered_text(first_message)}]
+    return f"Экзамен начат по теме: {topic}", history, session, requires_voice, audio_file_path or "", ""
 
 @log_function_call
 def answer_question(session: Optional[SlidingKnowledgeDiagnostics],
@@ -223,10 +223,19 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
         else:
             return gr.update(visible=False)  # question_audio
     
+    with gr.Tab("Отчет"):
+        gr.set_static_paths(paths=[DOWNLOAD_PATH])
+        report_box = gr.Textbox(label=RAW_REPORT_LABEL, lines=8)
+        show_btn = gr.Button(SHOW_REPORT_BUTTON)
+        gr.DownloadButton(label=DOWNLOAD_REPORT_BUTTON, value=DOWNLOAD_PATH)
+        show_btn.click(show_report, [state], [report_box])
+        output = gr.Markdown()
+        report_box.change(lambda x: x, inputs=report_box, outputs=output)
+
     start_btn.click(
         start_exam, 
         [topic, chatbot], 
-        [session_info, chatbot, state, voice_required_state, audio_file_state]
+        [session_info, chatbot, state, voice_required_state, audio_file_state, report_box]
     ).then(
         switch_tab_based_on_voice,
         inputs=[voice_required_state],
@@ -236,7 +245,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
         inputs=[audio_file_state, voice_required_state, state],
         outputs=[question_audio]
     )
-    
+
     send_btn.click(
         answer_question, 
         [state, msg, chatbot], 
@@ -273,16 +282,7 @@ with gr.Blocks(theme=gr.themes.Soft(), css="""
         inputs=[audio_file_state, voice_required_state, state],
         outputs=[question_audio]
     )
-
-    with gr.Tab("Отчет"):
-        gr.set_static_paths(paths=[DOWNLOAD_PATH])
-        report_box = gr.Textbox(label=RAW_REPORT_LABEL, lines=8)
-        show_btn = gr.Button(SHOW_REPORT_BUTTON)
-        gr.DownloadButton(label=DOWNLOAD_REPORT_BUTTON, value=DOWNLOAD_PATH)
-        show_btn.click(show_report, [state], [report_box])
-        output = gr.Markdown()
-        report_box.change(lambda x: x, inputs=report_box, outputs=output)
-        
+    
 
 if __name__ == "__main__":
     from dotenv import load_dotenv
