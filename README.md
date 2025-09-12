@@ -22,7 +22,7 @@ OPENAI_API_KEY=<your_openai_api_key>
 
 Also you need a database in current dir with name  ```data.csv``` format.
 
-Our data base can be found [here](https://drive.google.com/file/d/1X8b4qg_tjaGOvKUVgPVnCeo5sQ1XIRih/view?usp=sharing).
+Our data base can be found [here](https://drive.google.com/file/d/12yJ3d6QjlIfn5PeJoCoc2uzocuh-AHpq/view?usp=sharing).
 
 Start app:
 
@@ -31,13 +31,13 @@ bash docker/build.sh
 bash docker/run.sh
 ```
 
-Local app can be accessed by link ```http://0.0.0.0:7860```
+Local app can be accessed by link ```http://0.0.0.0:7860``` (```localhost:7860```).
 
 # Demo
 
 ![til](./assets/demo.gif)
 
-# New features
+# Project features
 
 ## 🎤 Voice Responses
 - **Voice recording**: Students can answer questions by speaking through a microphone  
@@ -47,10 +47,17 @@ Local app can be accessed by link ```http://0.0.0.0:7860```
 - **Flexibility**: Supports both text and voice responses  
 - **Russian language**: Optimized for recognizing Russian speech  
 
-## 📁 Folder structures
-```
-recordings/          # Папка с сохраненными аудио записями
-├── recording_20241201_143022_abc123.wav
-├── recording_20241201_143155_def456.wav
-└── ...
-```
+![screenshot](assets/voice_mode.png)
+
+## 📊 PDF report generation
+
+After exam report is generated as PDF file with some plots.
+
+![screenshot](assets/report_screen.png)
+![screenshot](assets/radar_plot.png)
+
+## ❓ Clarifying question generation
+
+If student's answer is not clear, clarifying question will be generated.
+
+![screenshot](assets/clar_qs_example.png)
