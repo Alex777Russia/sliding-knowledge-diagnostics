@@ -1,7 +1,7 @@
 import json
 from typing import Dict, List, Tuple
 
-from src.sliding_knowledge_diagnostics.utils import EvaluationResult, HistoryElement, smart_json_loads
+from src.sliding_knowledge_diagnostics.utils import HistoryElement, smart_json_loads
 from src.sliding_knowledge_diagnostics.clarrifying_question_generator.prompts import (
     CLARRIFYING_QUESTION_GENERATOR_SYSTEM_PROMPT, 
     CLARRIFYING_QUESTION_GENERATOR_USER_TEMPLATE
@@ -24,14 +24,9 @@ class ClarrifyingQuestionGenerator:
             self,
             history: List[Dict[str, str]]
     ) -> HistoryElement:
-        logger.info("Генерация уточняющего вопроса")
         question, student_answer, gt_answer, blum_level = self._extract_data_for_generation(
             history=history
         )
-        
-        logger.debug(f"Исходный вопрос: {question[:100]}...")
-        logger.debug(f"Ответ студента: {student_answer[:100]}...")
-        logger.debug(f"Уровень Блума: {blum_level}")
         
         messages = [
             {
@@ -49,27 +44,20 @@ class ClarrifyingQuestionGenerator:
             }
         ]
 
-        logger.info("Отправляем запрос к LLM для генерации уточняющего вопроса")
         model_prediction = self.llm.run(
             messages=messages
         )
-        logger.debug(f"Получен ответ от LLM: {model_prediction[:200]}...")
 
         try:
             model_prediction = json.loads(model_prediction)
             question, gt_answer = model_prediction["question"], model_prediction["answer"]
-            logger.info("Успешно распарсен JSON ответ")
         except Exception as e:
-            logger.warning(f"Ошибка парсинга JSON: {e}. Пробуем smart_json_loads")
             try:
                model_prediction = smart_json_loads(model_prediction) 
                question, gt_answer = model_prediction["question"], model_prediction["answer"]
-               logger.info("Успешно распарсен через smart_json_loads")
             except Exception as e2:
-                logger.error(f"Не удалось распарсить ответ LLM: {e2}. Устанавливаем пустые значения")
                 question, gt_answer = "", ""
 
-        logger.info(f"Сгенерирован уточняющий вопрос: {question[:100]}...")
         return HistoryElement(
             role="assistant",
             content=question,

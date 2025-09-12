@@ -6,7 +6,12 @@ from src.sliding_knowledge_diagnostics.answer_evaluator import AnswerEvaluator
 from src.sliding_knowledge_diagnostics.clarrifying_question_generator import ClarrifyingQuestionGenerator
 from src.sliding_knowledge_diagnostics.report_generator import ReportGenerator
 from src.sliding_knowledge_diagnostics.utils import EvaluationResult, HistoryElement
-from src.utils import EXAM_IS_DONE_BECAUSE_OF_MISTAKES, EXAM_IS_DONE_MESSAGE, EXAM_IS_NOT_DONE_MESSAGE, VOICE_INPUT_AVAILABLE_MESSAGE
+from src.utils import (
+    EXAM_IS_DONE_BECAUSE_OF_MISTAKES, 
+    EXAM_IS_DONE_MESSAGE, 
+    EXAM_IS_NOT_DONE_MESSAGE, 
+    VOICE_INPUT_AVAILABLE_MESSAGE
+)
 from src.logging_config import get_logger
 from src.audio import TextToSpeech
 
@@ -23,7 +28,7 @@ class SlidingKnowledgeDiagnostics:
         self.history = []
         self.bloom_oreder_reversed = copy(BLOOM_ORDER_REVERSED)
         self.questions_df = pd.read_csv('data.csv')
-        self._set_next_blum_level_and_get_status(True)
+        self._set_next_blum_level_and_get_status()
         self.report = None
         self.available_attempts = 2
 
@@ -74,12 +79,9 @@ class SlidingKnowledgeDiagnostics:
     
     def _set_next_blum_level_and_get_status(
             self,
-            is_initial_update: bool = False
     ) -> bool:
         try:
-            old_level = self.current_blum_level if not is_initial_update else "Уровень не определен"
             self.current_blum_level = self.bloom_oreder_reversed.pop()
-            logger.info(f"Переход к следующему уровню Блума: {old_level} -> {self.current_blum_level}")
             return True
         except IndexError:
             return False
